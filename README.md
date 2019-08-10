@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-BSD-lightgrey.svg)](https://github.com/parse-community/Parse-SDK-Android/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/parse-community/Parse-SDK-Android.svg?branch=master)](https://travis-ci.org/parse-community/Parse-SDK-Android)
-[![](https://jitpack.io/v/parse-community/Parse-SDK-Android.svg)](https://jitpack.io/#parse-community/Parse-SDK-Android)
+[![](https://jitpack.io/v/thomax-it/Parse-SDK-Android.svg)](https://jitpack.io/#thomax-it/Parse-SDK-Android)
 [![Join The Conversation](https://img.shields.io/discourse/https/community.parseplatform.org/topics.svg)](https://community.parseplatform.org/c/parse-server)
 [![Backers on Open Collective](https://opencollective.com/parse-server/backers/badge.svg)][open-collective-link]
 [![Sponsors on Open Collective](https://opencollective.com/parse-server/sponsors/badge.svg)][open-collective-link]
@@ -27,7 +27,7 @@ allprojects {
 Then, add the library to your project `build.gradle`
 ```gradle
 dependencies {
-    implementation "com.github.parse-community.Parse-SDK-Android:parse:latest.version.here"
+    implementation "com.github.thomax-it.Parse-SDK-Android:parse:latest.version.here"
     // for FCM Push support (optional)
     implementation "com.github.parse-community.Parse-SDK-Android:fcm:latest.version.here"
     // for Kotlin extensions support (optional)
