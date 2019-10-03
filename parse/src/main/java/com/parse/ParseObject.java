@@ -1098,6 +1098,26 @@ public class ParseObject implements Parcelable {
         return pinAllInBackground(name, objects, true);
     }
 
+    /**
+     * Stores the objects in the local datastore.
+     * To get the objects back later, you can
+     * use {@link ParseQuery#fromLocalDatastore()}, or you can create an unfetched pointer with
+     * {@link #createWithoutData(Class, String)} and then call {@link #fetchFromLocalDatastore()} on it.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #pinAllInBackground(String, java.util.List)} instead.
+     *
+     * @param name    the name
+     * @param objects the objects to be pinned
+     * @return A {@link bolts.Task} that is resolved when pinning all completes.
+     * @see #unpinAllInBackground(String, java.util.List)
+     * @see #pinAllInBackground(String, java.util.List)
+     */
+    public static <T extends ParseObject> Task<Void> pinAllNotRecursiveInBackground(final String name,
+                                                                                    final List<T> objects) {
+        return pinAllInBackground(name, objects, false);
+    }
+
     private static <T extends ParseObject> Task<Void> pinAllInBackground(final String name,
                                                                          final List<T> objects, final boolean includeAllChildren) {
         if (!Parse.isLocalDatastoreEnabled()) {
@@ -1235,10 +1255,57 @@ public class ParseObject implements Parcelable {
      * @param objects  the objects
      * @param callback the callback
      * @see #pinAllInBackground(String, java.util.List, SaveCallback)
+     * @see #unpinAllForceInBackground(String, java.util.List, DeleteCallback)
      */
     public static <T extends ParseObject> void unpinAllInBackground(String name, List<T> objects,
                                                                     DeleteCallback callback) {
         ParseTaskUtils.callbackOnMainThreadAsync(unpinAllInBackground(name, objects), callback);
+    }
+
+    /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllInBackground(String, java.util.List, DeleteCallback)} instead.
+     *
+     * @param name     the name
+     * @param objects  the objects
+     * @param callback the callback
+     * @see #pinAllInBackground(String, java.util.List, SaveCallback)
+     * @see #unpinAllInBackground(String, java.util.List, DeleteCallback)
+     */
+    public static <T extends ParseObject> void unpinAllForceInBackground(String name, List<T> objects,
+                                                                    DeleteCallback callback) {
+        ParseTaskUtils.callbackOnMainThreadAsync(unpinAllForceInBackground(name, objects), callback);
+    }
+
+    /**
+     * Removes the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAllInBackground(String, java.util.List, DeleteCallback)}.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinAllEverywhereForceInBackground(java.util.List, DeleteCallback)
+     */
+    public static <T extends ParseObject> void unpinAllEverywhereInBackground(List<T> objects,
+                                                                               DeleteCallback callback) {
+        ParseTaskUtils.callbackOnMainThreadAsync(unpinAllEverywhereInBackground(objects), callback);
+    }
+
+    /**
+     * Forces the remove of the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAllInBackground(String, java.util.List, DeleteCallback)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllEverywhereInBackground(java.util.List, DeleteCallback)} instead.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinAllEverywhereInBackground(java.util.List, DeleteCallback)
+     */
+    public static <T extends ParseObject> void unpinAllEverywhereForceInBackground(List<T> objects,
+                                                                              DeleteCallback callback) {
+        ParseTaskUtils.callbackOnMainThreadAsync(unpinAllEverywhereForceInBackground(objects), callback);
     }
 
     /**
@@ -1248,6 +1315,7 @@ public class ParseObject implements Parcelable {
      * @param objects the objects
      * @return A {@link bolts.Task} that is resolved when unpinning all completes.
      * @see #pinAllInBackground(String, java.util.List)
+     * @see #unpinAllForceInBackground(String, java.util.List)
      */
     public static <T extends ParseObject> Task<Void> unpinAllInBackground(String name,
                                                                           List<T> objects) {
@@ -1259,6 +1327,78 @@ public class ParseObject implements Parcelable {
             name = DEFAULT_PIN;
         }
         return Parse.getLocalDatastore().unpinAllObjectsAsync(name, objects);
+    }
+
+    /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllInBackground(String, java.util.List)} instead.
+     *
+     * @param name    the name
+     * @param objects the objects
+     * @return A {@link bolts.Task} that is resolved when unpinning all completes.
+     * @see #pinAllInBackground(String, java.util.List)
+     * @see #unpinAllInBackground(String, java.util.List)
+     */
+    public static <T extends ParseObject> Task<Void> unpinAllForceInBackground(String name,
+                                                                                      List<T> objects) {
+        if (!Parse.isLocalDatastoreEnabled()) {
+            throw new IllegalStateException("Method requires Local Datastore. " +
+                    "Please refer to `Parse#enableLocalDatastore(Context)`.");
+        }
+        if (name == null) {
+            name = DEFAULT_PIN;
+        }
+        return Parse.getLocalDatastore().unpinAllObjectsForceAsync(name, objects);
+    }
+
+    /**
+     * Forces the remove of the objects and every object they points to, which are not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAllInBackground(String, java.util.List)}.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinAllEverywhereForceInBackground(java.util.List)
+     */
+    public static <T extends ParseObject> Task<Void> unpinAllEverywhereInBackground(List<T> objects) {
+        if (!Parse.isLocalDatastoreEnabled()) {
+            throw new IllegalStateException("Method requires Local Datastore. " +
+                    "Please refer to `Parse#enableLocalDatastore(Context)`.");
+        }
+        return unpinAllEverywhereInBackground(objects, false);
+    }
+
+    /**
+     * Forces the remove of the objects and every object they points to, which are not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAllInBackground(String, java.util.List)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllEverywhereInBackground(java.util.List)} instead.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinAllEverywhereInBackground(java.util.List)
+     */
+    public static <T extends ParseObject> Task<Void> unpinAllEverywhereForceInBackground(List<T> objects) {
+        if (!Parse.isLocalDatastoreEnabled()) {
+            throw new IllegalStateException("Method requires Local Datastore. " +
+                    "Please refer to `Parse#enableLocalDatastore(Context)`.");
+        }
+        return unpinAllEverywhereInBackground(objects, true);
+    }
+
+    private static <T extends ParseObject> Task<Void> unpinAllEverywhereInBackground(List<T> objects, boolean force){
+        ArrayList<Task<Void>> tasks = new ArrayList<>();
+        for (String tag :
+                Parse.getLocalDatastore().getParsePinNames()) {
+            if(force) {
+                tasks.add(unpinAllForceInBackground(tag, objects));
+            }else{
+                tasks.add(unpinAllInBackground(tag, objects));
+            }
+        }
+        return Task.whenAll(tasks);
     }
 
     /**
@@ -1275,6 +1415,49 @@ public class ParseObject implements Parcelable {
     }
 
     /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAll(String, java.util.List)} instead.
+     *
+     * @param name    the name
+     * @param objects the objects
+     * @throws ParseException exception if fails
+     * @see #pinAll(String, java.util.List)
+     */
+    public static <T extends ParseObject> void unpinAllForce(String name,
+                                                        List<T> objects) throws ParseException {
+        ParseTaskUtils.wait(unpinAllForceInBackground(name, objects));
+    }
+
+    /**
+     * Removes the objects and every object they point to, which are not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAll(String, java.util.List)}.
+     *
+     * @see #pinAll(String, java.util.List)
+     * @see #unpinAll(String, java.util.List)
+     * @see #unpinAllEverywhereForce(java.util.List)
+     */
+    public static <T extends ParseObject> void unpinAllEverywhere(List<T> objects) throws ParseException {
+        ParseTaskUtils.wait(unpinAllEverywhereInBackground(objects));
+    }
+
+    /**
+     * Forces the remove of the objects and every object they point to, which are not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinAll(String, java.util.List)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllEverywhere(java.util.List)} instead.
+     *
+     * @see #pinAll(String, java.util.List)
+     * @see #unpinAll(String, java.util.List)
+     * @see #unpinAllEverywhere(java.util.List)
+     */
+    public static <T extends ParseObject> void unpinAllEverywhereForce(List<T> objects) throws ParseException {
+        ParseTaskUtils.wait(unpinAllEverywhereForceInBackground(objects));
+    }
+
+    /**
      * Removes the objects and every object they point to in the local datastore, recursively.
      *
      * @param objects  the objects
@@ -1285,6 +1468,22 @@ public class ParseObject implements Parcelable {
     public static <T extends ParseObject> void unpinAllInBackground(List<T> objects,
                                                                     DeleteCallback callback) {
         ParseTaskUtils.callbackOnMainThreadAsync(unpinAllInBackground(DEFAULT_PIN, objects), callback);
+    }
+
+    /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllInBackground(java.util.List,DeleteCallback)} instead.
+     *
+     * @param objects  the objects
+     * @param callback the callback
+     * @see #pinAllInBackground(java.util.List, SaveCallback)
+     * @see #DEFAULT_PIN
+     */
+    public static <T extends ParseObject> void unpinAllForceInBackground(List<T> objects,
+                                                                    DeleteCallback callback) {
+        ParseTaskUtils.callbackOnMainThreadAsync(unpinAllForceInBackground(DEFAULT_PIN, objects), callback);
     }
 
     /**
@@ -1300,6 +1499,21 @@ public class ParseObject implements Parcelable {
     }
 
     /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAllInBackground(java.util.List)} instead.
+     *
+     * @param objects  the objects
+     * @return A {@link bolts.Task} that is resolved when unpinning all completes.
+     * @see #pinAllInBackground(java.util.List)
+     * @see #DEFAULT_PIN
+     */
+    public static <T extends ParseObject> Task<Void> unpinAllInBackgroundForce(List<T> objects) {
+        return unpinAllForceInBackground(DEFAULT_PIN, objects);
+    }
+
+    /**
      * Removes the objects and every object they point to in the local datastore, recursively.
      *
      * @param objects the objects
@@ -1309,6 +1523,21 @@ public class ParseObject implements Parcelable {
      */
     public static <T extends ParseObject> void unpinAll(List<T> objects) throws ParseException {
         ParseTaskUtils.wait(unpinAllInBackground(DEFAULT_PIN, objects));
+    }
+
+    /**
+     * Forces the remove of the objects and every object they point to in the local datastore, recursively.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinAll(java.util.List)} instead.
+     *
+     * @param objects  the objects
+     * @throws ParseException exception if fails
+     * @see #pinAll(java.util.List)
+     * @see #DEFAULT_PIN
+     */
+    public static <T extends ParseObject> void unpinAllForce(List<T> objects) throws ParseException {
+        ParseTaskUtils.wait(unpinAllForceInBackground(DEFAULT_PIN, objects));
     }
 
     /**
@@ -3710,6 +3939,24 @@ public class ParseObject implements Parcelable {
         return pinAllInBackground(name, Collections.singletonList(this));
     }
 
+    /**
+     * Stores the object in the local datastore.
+     * To get the objects back later, you can use
+     * {@link ParseQuery#fromLocalDatastore()}, or you can create an unfetched pointer with
+     * {@link #createWithoutData(Class, String)} and then call {@link #fetchFromLocalDatastore()} on
+     * it.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #pinInBackground(String)} instead.
+     *
+     * @return A {@link bolts.Task} that is resolved when pinning completes.
+     * @see #unpinInBackground(String)
+     * @see #pinInBackground(String)
+     */
+    public Task<Void> pinNotRecursiveInBackground(String name) {
+        return pinAllNotRecursiveInBackground(name, Collections.singletonList(this));
+    }
+
     Task<Void> pinInBackground(String name, boolean includeAllChildren) {
         return pinAllInBackground(name, Collections.singletonList(this), includeAllChildren);
     }
@@ -3727,6 +3974,24 @@ public class ParseObject implements Parcelable {
      */
     public void pin(String name) throws ParseException {
         ParseTaskUtils.wait(pinInBackground(name));
+    }
+
+    /**
+     * Stores the object to in the local datastore.
+     * To get the objects back later, you can use
+     * {@link ParseQuery#fromLocalDatastore()}, or you can create an unfetched pointer with
+     * {@link #createWithoutData(Class, String)} and then call {@link #fetchFromLocalDatastore()} on
+     * it.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #pin(String)} instead.
+     *
+     * @throws ParseException exception if fails
+     * @see #unpin(String)
+     * @see #pin(String)
+     */
+    public void pinNotRecurisive(String name) throws ParseException {
+        ParseTaskUtils.wait(pinNotRecursiveInBackground(name));
     }
 
     /**
@@ -3798,12 +4063,94 @@ public class ParseObject implements Parcelable {
     }
 
     /**
+     * Forces the remove of the object from that pin. Beside from that, it works like {@link #unpinInBackground(String)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinInBackground(String)} instead.
+     *
+     * @return A {@link bolts.Task} that is resolved when unpinning completes.
+     * @see #pinInBackground(String)
+     */
+    public Task<Void> unpinInBackgroundForce(String name) {
+        return unpinAllForceInBackground(name, Collections.singletonList(this));
+    }
+
+    /**
+     * Removes the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinInBackground(String)}.
+     *
+     * @return A {@link bolts.Task} that is resolved when unpinning completes.
+     * @see #pinInBackground(String)
+     * @see #unpinInBackground(String)
+     * @see #unpinEverywhereForceInBackground()
+     */
+    public Task<Void> unpinEverywhereInBackground() {
+        return unpinAllEverywhereInBackground(Collections.singletonList(this));
+    }
+
+    /**
+     * Forces the remove of the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpinInBackground(String)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinEverywhereInBackground()} instead.
+     *
+     * @return A {@link bolts.Task} that is resolved when unpinning completes.
+     * @see #pinInBackground(String)
+     * @see #unpinInBackground(String)
+     * @see #unpinEverywhereForceInBackground()
+     */
+    public Task<Void> unpinEverywhereForceInBackground() {
+        return unpinAllEverywhereForceInBackground(Collections.singletonList(this));
+    }
+
+    /**
      * Removes the object and every object it points to in the local datastore, recursively.
      *
      * @see #pin(String)
      */
     public void unpin(String name) throws ParseException {
         ParseTaskUtils.wait(unpinInBackground(name));
+    }
+
+    /**
+     * Forces the remove of the object from that pin. Beside from that, it works like unpin(String).
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpin(String)} instead.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     */
+    public void unpinForce(String name) throws ParseException {
+        ParseTaskUtils.wait(unpinInBackgroundForce(name));
+    }
+
+    /**
+     * Removes the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpin(String)}.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinEverywhereForce()
+     */
+    public void unpinEverywhere() throws ParseException {
+        ParseTaskUtils.wait(unpinEverywhereInBackground());
+    }
+
+    /**
+     * Forces the remove of the object and every object it points to, which is not separately pinned,
+     * from every Pin. Beside from that, it works like {@link #unpin(String)}.
+     *
+     * Using this function is only necessary under very special circumstances.
+     * It is recommended to use {@link #unpinEverywhere()} instead.
+     *
+     * @see #pin(String)
+     * @see #unpin(String)
+     * @see #unpinEverywhereForce()
+     */
+    public void unpinEverywhereForce() throws ParseException {
+        ParseTaskUtils.wait(unpinEverywhereForceInBackground());
     }
 
     /**
@@ -3826,6 +4173,17 @@ public class ParseObject implements Parcelable {
      */
     public Task<Void> unpinInBackground() {
         return unpinAllInBackground(DEFAULT_PIN, Collections.singletonList(this));
+    }
+
+    /**
+     * Forces the remove of the object and every object it points to in the local datastore, recursively.
+     *
+     * @return A {@link bolts.Task} that is resolved when unpinning completes.
+     * @see #pinInBackground()
+     * @see #DEFAULT_PIN
+     */
+    public Task<Void> unpinForceInBackground() {
+        return unpinAllForceInBackground(DEFAULT_PIN, Collections.singletonList(this));
     }
 
     /**
